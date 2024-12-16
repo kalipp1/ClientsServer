@@ -1,7 +1,6 @@
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
-const db = require('./db.js')
 const cors = require('cors');
+const path = require('path');
 
 const testimonialsRoutes = require('../routes/testimonials.routes.js');
 const concertsRoutes = require('../routes/concerts.routes.js');
@@ -16,10 +15,16 @@ app.use('/api', testimonialsRoutes);
 app.use('/api', concertsRoutes);
 app.use('/api', seatsRoutes);
 
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '/client/build/index.html'));
+});
+
+app.use(express.static(path.join(__dirname, '/client/build')));
+
 app.use((req, res) => {
     res.status(404).send('404 not found...');
   })
 
-app.listen(8000, () => {
-  console.log('Server is running on port: 8000');
-});
+app.listen(process.env.PORT || 8000, () => {
+    console.log('Server is running on port: 8000');
+  });
