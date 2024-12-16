@@ -1,6 +1,6 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const db = require('../db')
+const db = require('../server/db')
 const router = express.Router();
 
 router.route('/seats').get((req, res) => {
@@ -19,6 +19,12 @@ router.route('/seats/:id').get((req, res) => {
   
 router.route('/seats').post((req , res) => {
     const { day, seat, client, email } = req.body;
+
+    const isSeatTaken = db.seats.some(existingSeat => existingSeat.day === day && existingSeat.seat === seat);
+
+    if (isSeatTaken) {
+        return res.status(409).json({ message: 'The slot is already taken...' });
+    }
     
     const newSeat = {
       id: uuidv4(),
