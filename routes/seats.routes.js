@@ -1,71 +1,12 @@
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
-const db = require('../server/db')
 const router = express.Router();
+const SeatsController = require('../controllers/seats.controller');
 
-router.route('/seats').get((req, res) => {
-    res.send(db.seats);
-  });
-  
-router.route('/seats/:id').get((req, res) => {
-    const { id } = req.params;
-    const seat = db.seats.find(item => item.id === parseInt(id));
-    if(!seat){
-      res.status(404).send('Seat not found');
-    }else{
-      res.send(seat);
-    }
-  });
-  
-router.route('/seats').post((req , res) => {
-    const { day, seat, client, email } = req.body;
-
-    const isSeatTaken = db.seats.some(existingSeat => existingSeat.day === day && existingSeat.seat === seat);
-
-    if (isSeatTaken) {
-        return res.status(409).json({ message: 'The slot is already taken...' });
-    }
-    
-    const newSeat = {
-      id: uuidv4(),
-      day: day,
-      seat: seat,
-      client: client,
-      email: email,
-    }
-  
-    db.seats.push(newSeat);
-    console.log('Emitting seatsUpdated:', db.seats);
-    req.io.emit('seatsUpdated', db.seats);
-    res.send({message: 'OK'});
-  });
-  
-router.route('/seats/:id').put((req, res) => {
-    const { id } = req.params;
-    const { day, seat, client, email } = req.body;
-    const updatedSeat = db.seats.find(item => item.id === parseInt(id));
-    if(!updatedSeat){
-      res.status(404).send('Seat not found');
-    }else{
-      updatedSeat.day = day,
-      updatedSeat.seat = seat,
-      updatedSeat.client = client,
-      updatedSeat.email = email,
-  
-      res.send({message: 'OK'});
-    }
-  });
-  
-router.route('/seats/:id').delete((req, res) => {
-    const { id } = req.params;
-    const index = db.seats.findIndex(item => item.id === parseInt(id));
-  
-  if(index === -1){
-    res.status(404).send('Seat not found');
-  }else{
-    db.seats.splice(index, 1);
-    res.send({message: 'OK'});
-  }
-  });
+router.get('/seats', SeatsController.getAll);
+router.get('/seats/random', SeatsController.getRandom);
+router.get('/seats/:id', SeatsController.getById);
+router.post('/seats', SeatsController.postSeat);
+router.put('/seats/:id', SeatsController.modifySeat);
+router.delete('/seats/:id', SeatsController.deleteSeat);
 
 module.exports = router;
