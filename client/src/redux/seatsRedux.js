@@ -73,7 +73,13 @@ const initialState = {
 export default function reducer(statePart = initialState, action = {}) {
   switch (action.type) {
     case LOAD_SEATS: 
-      return { ...statePart, data: [...action.payload] };
+  console.log('Received seats in reducer:', action.payload);
+  if (Array.isArray(action.payload)) {
+    return { ...statePart, data: action.payload };
+  } else {
+    console.error('Expected payload to be an array, but got:', action.payload);
+    return statePart;
+  }
     case ADD_SEAT: 
       return { ...statePart, data: [...statePart.data, action.payload] }
     case START_REQUEST:

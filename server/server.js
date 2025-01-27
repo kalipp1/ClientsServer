@@ -3,59 +3,84 @@ const cors = require('cors');
 const path = require('path');
 const socket = require('socket.io');
 const mongoose = require('mongoose');
-
-const testimonialsRoutes = require('../routes/testimonials.routes.js');
-const concertsRoutes = require('../routes/concerts.routes.js');
-const seatsRoutes = require('../routes/seats.routes.js');
-
+// const helmet = require('helmet');
 
 const app = express();
-app.use(cors({
-  origin: 'http://localhost:3000',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+
+// app.use(helmet());
+
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, '/client/build')));
+
+// import routes
+const testimonialsRoutes = require('./routes/testimonials.routes');
+const concertsRoutes = require('./routes/concerts.routes');
+const seatsRoutes = require('./routes/seats.routes');
+// const daysRoutes = require('./routes/days.routes');
+
+app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
-mongoose.connect('mongodb://localhost:27017/newWaveDB', { useNewUrlParser: true, useUnifiedTopology: true });
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
+app.use('/api', testimonialsRoutes);
+app.use('/api', concertsRoutes);
+app.use('/api', seatsRoutes);
+// app.use('/api', daysRoutes);
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '/client/build/index.html'));
+});
+
+app.use((req, res) => {
+  res.status(404).json({ message: 'Not found...' });
+});
+
+// connects our backend code with the database
+let dbURI;
+switch (process.env.NODE_ENV){
+  case 'test':
+    dbURI = 'mongodb://localhost:27017/NWTest';
+    break;
+  case 'production':
+    dbURI = `mongodb+srv://doforever:${process.env.dbpass}@newwavedb.8mija.mongodb.net/NewWaveDB?retryWrites=true&w=majority`;
+    break;
+  default:
+    dbURI = 'mongodb://localhost:27017/NewWaveDB';
+}
+
+//const dbURI = process.env.NODE_ENV === 'test' ? 'mongodb://localhost:27017/NWTest' : 'mongodb://localhost:27017/NewWaveDB';
+
+mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true });
 const db = mongoose.connection;
 
+db.once('open', () => {
+  console.log('Connected to the database: ', dbURI);
+});
+db.on('error', err => console.log('Error ' + err));
+
 const server = app.listen(process.env.PORT || 8000, () => {
-  console.log('Server is running on port: 8000');
+  console.log('Server is running on port: ', process.env.PORT || 8000);
 });
 
 const io = socket(server, {
   cors: {
     origin: 'http://localhost:3000',
-    methods: ['GET', 'POST']
-  }
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+  },
 });
+io.on('connection', socket => {
+  console.log('New socket ', socket.id);
 
-app.use((req, res, next) => {
-  console.log('123');
-  req.io = io;
-  next();
-});
-
-db.once('open', async () => {
-  console.log('Connected to the database');
-  app.use('/api', testimonialsRoutes);
-  app.use('/api', seatsRoutes);
-  app.use('/api', concertsRoutes);
-
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '/client/build/index.html'));
+  socket.on('reserveSeat', (data) => {
+    console.log('Seat reserved: ', data);
+    io.emit('seatReserved', data);
   });
-
-  app.use(express.static(path.join(__dirname, '/client/build')));
-
-  app.use((req, res) => {
-    res.status(404).send('404 not found...');
-  })
 });
-db.on('error', err => console.log('Error ' + err));
 
-io.on('connection', (socket) => {
-  console.log('New client! Its id – ' + socket.id);
-  });
+module.exports = server;
