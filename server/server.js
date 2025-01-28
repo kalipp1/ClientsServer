@@ -50,8 +50,9 @@ switch (process.env.NODE_ENV){
     dbURI = `mongodb+srv://doforever:${process.env.dbpass}@newwavedb.8mija.mongodb.net/NewWaveDB?retryWrites=true&w=majority`;
     break;
   default:
-    dbURI = 'mongodb://localhost:27017/NewWaveDB';
+    dbURI = 'mongodb+srv://maksymilianbirecki:makshaslo123@cluster0.ugn1n.mongodb.net/NewWaveDB?retryWrites=true&w=majority&appName=Cluster0';
 }
+
 
 //const dbURI = process.env.NODE_ENV === 'test' ? 'mongodb://localhost:27017/NWTest' : 'mongodb://localhost:27017/NewWaveDB';
 
